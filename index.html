@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BarberBook – WebinDev</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=SF+Pro+Display:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ─── INTRO ─── -->
+<div id="intro">
+  <div class="intro-dot" id="introDot"></div>
+  <div class="brand-line" id="brandLine"></div>
+  <div class="intro-sub" id="introSub">Sistema de Reservas</div>
+</div>
+
+<!-- ─── APP ─── -->
+<div id="app">
+  <div class="top-bar">
+    <div class="top-bar-brand">WebinDev</div>
+    <div class="top-bar-title" id="appTitle">Tu cita perfecta</div>
+  </div>
+
+  <div class="steps-progress" id="stepsProgress">
+    <div class="step-pip active" data-step="1"></div>
+    <div class="step-pip" data-step="2"></div>
+    <div class="step-pip" data-step="3"></div>
+    <div class="step-pip" data-step="4"></div>
+  </div>
+
+  <div class="scroll-area" id="scrollArea">
+
+    <!-- STEP 1: Barbero -->
+    <div class="step-panel active" id="step1">
+      <div class="step-label">Paso 1 de 4</div>
+      <div class="step-title">¿Quién te va a cortar?</div>
+      <div class="barber-grid" id="barberGrid">
+        <!-- populated by JS -->
+      </div>
+    </div>
+
+    <!-- STEP 2: Servicios -->
+    <div class="step-panel" id="step2">
+      <div class="step-label">Paso 2 de 4</div>
+      <div class="step-title">¿Qué te hacemos?</div>
+      <div id="totalPillWrap"></div>
+      <div class="service-list" id="serviceList"></div>
+    </div>
+
+    <!-- STEP 3: Fecha y Hora -->
+    <div class="step-panel" id="step3">
+      <div class="step-label">Paso 3 de 4</div>
+      <div class="step-title">¿Cuándo te vemos?</div>
+
+      <div class="date-tap-btn" id="dateTapBtn">
+        <div class="date-tap-left">
+          <div class="date-tap-icon">📅</div>
+          <div class="date-tap-text">
+            <div class="date-tap-label">Fecha</div>
+            <div class="date-tap-value" id="dateTapValue">Toca para elegir</div>
+          </div>
+        </div>
+        <div class="date-tap-arrow">›</div>
+        <input class="date-input-hidden" type="date" id="nativeDateInput">
+      </div>
+
+      <div class="time-section" id="timeSection" style="display:none">
+        <div class="time-section-label" id="timeLabel">Horarios disponibles</div>
+        <div id="timeContent"></div>
+      </div>
+    </div>
+
+    <!-- STEP 4: Datos -->
+    <div class="step-panel" id="step4">
+      <div class="step-label">Paso 4 de 4</div>
+      <div class="step-title">Tus datos</div>
+      <div class="form-group">
+        <label class="form-label">Nombre completo</label>
+        <input class="form-input" type="text" id="inputNombre" placeholder="Ej. Carlos Pérez" autocomplete="name">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Teléfono / WhatsApp</label>
+        <input class="form-input" type="tel" id="inputTel" placeholder="+57 300 000 0000" autocomplete="tel">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Cédula</label>
+        <input class="form-input" type="number" id="inputCedula" placeholder="1 000 000 000" autocomplete="off">
+      </div>
+
+      <!-- Resumen -->
+      <div class="step-title" style="margin-top:32px;font-size:18px">Resumen de tu cita</div>
+      <div class="summary-card" id="summaryCard"></div>
+    </div>
+
+    <!-- SUCCESS -->
+    <div id="success-screen">
+      <div class="success-ring">✓</div>
+      <div class="success-title">¡Reserva Confirmada!</div>
+      <div class="success-sub">Tu cita fue enviada al barbero por WhatsApp. Te estará esperando.</div>
+      <div class="success-detail" id="successDetail"></div>
+    </div>
+
+  </div><!-- /scroll-area -->
+
+  <div class="cta-bar" id="ctaBar">
+    <button class="back-btn" id="backBtn" style="display:none">‹ Volver</button>
+    <button class="cta-btn cta-btn-primary" id="ctaBtn" disabled>Continuar</button>
+  </div>
+</div>
+
+<!-- ─── LOGIN TRIGGER (triple clic) ─── -->
+<div class="login-trigger" id="loginTrigger" title="Acceso interno">🔐</div>
+
+<!-- ─── LOGIN OVERLAY ─── -->
+<div id="loginOverlay">
+  <div class="login-box">
+    <div class="login-brand">WebinDev · Acceso interno</div>
+    <div class="login-title" id="loginTitle">Iniciar sesión</div>
+    <div class="login-tabs" id="loginTabs">
+      <button class="login-tab active" onclick="setLoginRole('admin')">👑 Admin</button>
+      <button class="login-tab" onclick="setLoginRole('barbero')">✂️ Barbero</button>
+    </div>
+    <div class="login-error" id="loginError">Contraseña incorrecta</div>
+    <label class="form-label">Contraseña</label>
+    <input class="form-input" type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password">
+    <div class="login-actions">
+      <button class="login-cancel" onclick="closeLogin()">Cancelar</button>
+      <button class="login-submit" onclick="doLogin()">Ingresar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── PANEL ADMIN ─── -->
+<div id="panelAdmin">
+  <div class="panel-header">
+    <div class="panel-header-left">
+      <div class="panel-badge">👑 Administrador</div>
+      <div class="panel-title">Panel Admin</div>
+    </div>
+    <button class="panel-logout" onclick="doLogout()">Cerrar sesión</button>
+  </div>
+  <div class="panel-content" id="adminContent">
+    <!-- DASHBOARD -->
+    <div class="panel-section active" id="admin-dashboard">
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-label">💰 Ingresos hoy</div>
+          <div class="stat-value">$78.000</div>
+          <div class="stat-sub">3 citas atendidas</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">📅 Esta semana</div>
+          <div class="stat-value">$312.000</div>
+          <div class="stat-sub">14 citas</div>
+        </div>
+        <div class="stat-card full">
+          <div class="stat-label">📈 Este mes</div>
+          <div class="stat-value">$1.240.000</div>
+          <div class="stat-sub">52 citas atendidas · $23.800 promedio</div>
+        </div>
+      </div>
+      <div class="sec-heading">🏆 Ranking barberos</div>
+      <div id="adminRanking"></div>
+      <div class="sec-heading">⏰ Próximas citas (hoy)</div>
+      <div id="adminProximas"></div>
+    </div>
+    <!-- RESERVAS -->
+    <div class="panel-section" id="admin-reservas">
+      <div class="filter-row" id="adminFiltroEstado">
+        <button class="filter-chip active" data-f="todas">Todas</button>
+        <button class="filter-chip" data-f="pendiente">Pendientes</button>
+        <button class="filter-chip" data-f="confirmada">Confirmadas</button>
+        <button class="filter-chip" data-f="cancelada">Canceladas</button>
+      </div>
+      <div class="filter-row" id="adminFiltroBarbero">
+        <button class="filter-chip active" data-b="0">Todos</button>
+      </div>
+      <div id="adminCitasList"></div>
+    </div>
+    <!-- BLOQUEOS -->
+    <div class="panel-section" id="admin-bloqueos">
+      <div class="bloqueo-form">
+        <div class="bloqueo-form-title">🚫 Bloquear día completo</div>
+        <label class="form-label-sm">Fecha</label>
+        <input class="panel-input" type="date" id="bloqueo-fecha">
+        <label class="form-label-sm">Motivo</label>
+        <input class="panel-input" type="text" id="bloqueo-motivo" placeholder="Ej. Festivo, Cierre especial">
+        <button class="panel-btn" onclick="agregarBloqueo('dia')">Bloquear día</button>
+      </div>
+      <div class="bloqueo-form">
+        <div class="bloqueo-form-title">⏱ Bloquear rango de horas</div>
+        <label class="form-label-sm">Barbero</label>
+        <select class="panel-select" id="bloqueo-barbero">
+          <option value="0">Todos los barberos</option>
+        </select>
+        <label class="form-label-sm">Fecha</label>
+        <input class="panel-input" type="date" id="bloqueo-rango-fecha">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div>
+            <label class="form-label-sm">Desde</label>
+            <select class="panel-select" id="bloqueo-desde" style="margin:0"></select>
+          </div>
+          <div>
+            <label class="form-label-sm">Hasta</label>
+            <select class="panel-select" id="bloqueo-hasta" style="margin:0"></select>
+          </div>
+        </div>
+        <button class="panel-btn" style="margin-top:12px" onclick="agregarBloqueo('rango')">Bloquear horario</button>
+      </div>
+      <div class="sec-heading">📋 Bloqueos activos</div>
+      <div id="adminBloqueosList"></div>
+    </div>
+  </div>
+  <nav class="panel-nav" id="adminNav">
+    <button class="panel-nav-item active" data-sec="dashboard">
+      <span class="nav-icon">📊</span>
+      <span class="nav-label">Dashboard</span>
+    </button>
+    <button class="panel-nav-item" data-sec="reservas">
+      <span class="nav-icon">📋</span>
+      <span class="nav-label">Reservas</span>
+    </button>
+    <button class="panel-nav-item" data-sec="bloqueos">
+      <span class="nav-icon">🚫</span>
+      <span class="nav-label">Bloqueos</span>
+    </button>
+  </nav>
+</div>
+
+<!-- ─── PANEL BARBERO ─── -->
+<div id="panelBarbero">
+  <div class="panel-header">
+    <div class="panel-header-left">
+      <div class="panel-badge">✂️ Barbero</div>
+      <div class="panel-title" id="barberoPanelTitle">Mi Panel</div>
+    </div>
+    <button class="panel-logout" onclick="doLogout()">Cerrar sesión</button>
+  </div>
+  <div class="panel-content" id="barberoContent">
+    <!-- MI AGENDA HOY -->
+    <div class="panel-section active" id="barbero-agenda">
+      <div class="agenda-nav">
+        <button class="agenda-nav-btn" id="agendaPrev" onclick="agendaShiftDay(-1)">‹</button>
+        <div class="agenda-nav-label" id="agendaHoyLabel">Hoy · Viernes 25 Abr</div>
+        <button class="agenda-nav-btn" id="agendaNext" onclick="agendaShiftDay(1)">›</button>
+      </div>
+      <div id="barberoAgendaList"></div>
+    </div>
+    <!-- MIS CITAS HISTORIAL -->
+    <div class="panel-section" id="barbero-citas">
+      <div class="filter-row">
+        <button class="filter-chip active" data-bsf="todas">Todas</button>
+        <button class="filter-chip" data-bsf="pendiente">Pendientes</button>
+        <button class="filter-chip" data-bsf="atendida">Atendidas</button>
+        <button class="filter-chip" data-bsf="noshow">No show</button>
+      </div>
+      <div id="barberoCitasList"></div>
+    </div>
+    <!-- MIS INGRESOS -->
+    <div class="panel-section" id="barbero-ingresos">
+      <div class="ingreso-period" id="ingresoPeriod">
+        <button class="active" data-per="dia">Hoy</button>
+        <button data-per="semana">Semana</button>
+        <button data-per="mes">Mes</button>
+      </div>
+      <div class="ingreso-big" id="ingresosBig">
+        <div class="ingreso-big-label">Ingresos hoy</div>
+        <div class="ingreso-big-value">$78.000</div>
+        <div class="ingreso-big-sub">3 citas atendidas</div>
+      </div>
+      <div class="sec-heading">Detalle de citas atendidas</div>
+      <div id="ingresosDetalle"></div>
+    </div>
+    <!-- BLOQUEAR MI HORARIO -->
+    <div class="panel-section" id="barbero-bloquear">
+      <div class="bloqueo-form">
+        <div class="bloqueo-form-title">⏱ Marcar no disponible</div>
+        <label class="form-label-sm">Fecha</label>
+        <input class="panel-input" type="date" id="miBloqueo-fecha">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div>
+            <label class="form-label-sm">Desde</label>
+            <select class="panel-select" id="miBloqueo-desde" style="margin:0"></select>
+          </div>
+          <div>
+            <label class="form-label-sm">Hasta</label>
+            <select class="panel-select" id="miBloqueo-hasta" style="margin:0"></select>
+          </div>
+        </div>
+        <label class="form-label-sm" style="margin-top:12px">Motivo</label>
+        <input class="panel-input" type="text" id="miBloqueo-motivo" placeholder="Ej. Descanso, Llegada tarde...">
+        <button class="panel-btn" onclick="agregarMiBloqueo()">Marcar no disponible</button>
+      </div>
+      <div class="sec-heading">Mis bloqueos activos</div>
+      <div id="misBloqueosList"></div>
+    </div>
+  </div>
+  <nav class="panel-nav" id="barberoNav">
+    <button class="panel-nav-item active" data-sec="agenda">
+      <span class="nav-icon">📅</span>
+      <span class="nav-label">Hoy</span>
+    </button>
+    <button class="panel-nav-item" data-sec="citas">
+      <span class="nav-icon">📋</span>
+      <span class="nav-label">Mis Citas</span>
+    </button>
+    <button class="panel-nav-item" data-sec="ingresos">
+      <span class="nav-icon">💰</span>
+      <span class="nav-label">Ingresos</span>
+    </button>
+    <button class="panel-nav-item" data-sec="bloquear">
+      <span class="nav-icon">🚫</span>
+      <span class="nav-label">Horario</span>
+    </button>
+  </nav>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- ─── SCRIPTS ─── -->
+<!-- data.js debe ir antes que app.js -->
+<script src="data.js"></script>
+<script src="app.js"></script>
+
+</body>
+</html>
