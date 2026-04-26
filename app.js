@@ -158,68 +158,81 @@ function renderTotalPill() {
   wrap.innerHTML = `<div class="total-pill">Total seleccionado: <strong>${fmtPrice(total)}</strong></div>`;
 }
 
-// ─── STEP 3: Fecha y Hora ───
+// ─── STEP 3: Carrusel de fechas ───
 function initDatePicker() {
-  const input = document.getElementById('nativeDateInput');
-  const btn   = document.getElementById('dateTapBtn');
-  const val   = document.getElementById('dateTapValue');
+  renderDateCarousel();
+}
 
-  const now = new Date();
+function renderDateCarousel() {
+  const carousel = document.getElementById('dateCarousel');
+  carousel.innerHTML = '';
+
+  const DAYS_ES  = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  const MONTHS_ES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
   const pad = n => String(n).padStart(2, '0');
-  const todayStr = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
-  const maxDate  = new Date(now);
-  maxDate.setMonth(maxDate.getMonth() + 3);
-  const maxStr = `${maxDate.getFullYear()}-${pad(maxDate.getMonth()+1)}-${pad(maxDate.getDate())}`;
 
-  input.min = todayStr;
-  input.max = maxStr;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-  if (state.fecha) {
-    input.value = state.fecha;
-    applyDateDisplay(state.fecha, val, btn);
+  let lastWeek = -1;
+
+  // Mostrar 60 días hacia adelante, saltar domingos
+  for (let i = 0; i < 60; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    if (d.getDay() === 0) continue;   // cerrado domingos
+
+    // Separador entre semanas
+    const weekNum = Math.floor((d - today) / (7 * 86400000));
+    if (weekNum !== lastWeek && lastWeek !== -1) {
+      const sep = document.createElement('div');
+      sep.className = 'date-week-sep';
+      carousel.appendChild(sep);
+    }
+    lastWeek = weekNum;
+
+    const dateStr = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    const isSelected = state.fecha === dateStr;
+    const isToday = i === 0;
+
+    const card = document.createElement('div');
+    card.className = 'date-card' + (isSelected ? ' selected' : '');
+    card.dataset.date = dateStr;
+    card.innerHTML = `
+      <div class="date-card-day">${isToday ? 'Hoy' : DAYS_ES[d.getDay()]}</div>
+      <div class="date-card-num">${d.getDate()}</div>
+      <div class="date-card-month">${MONTHS_ES[d.getMonth()]}</div>
+    `;
+
+    card.addEventListener('click', () => {
+      // Verificar bloqueos de día completo
+      const bloqueado = BLOQUEOS.some(b => b.tipo === 'dia' && b.fecha === dateStr);
+      if (bloqueado) {
+        showToast('📅 Este día está cerrado');
+        return;
+      }
+      state.fecha = dateStr;
+      state.hora  = null;
+      // Resaltar la card seleccionada
+      carousel.querySelectorAll('.date-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      // Scroll suave para centrar la card seleccionada
+      card.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      loadTimeSlots();
+      updateCTA();
+    });
+
+    carousel.appendChild(card);
   }
 
-  // Abrir el calendario al hacer clic en cualquier parte del botón
-  btn.addEventListener('click', () => {
-    try {
-      input.showPicker();   // API moderna (Chrome, Edge, Firefox reciente)
-    } catch (e) {
-      input.click();        // Fallback para Safari / iOS
-    }
-  });
-
-  input.addEventListener('change', () => {
-    const v = input.value;
-    if (!v) return;
-    const [y, m, d] = v.split('-').map(Number);
-    const chosen = new Date(y, m - 1, d);
-    if (chosen.getDay() === 0) {
-      input.value = state.fecha || '';
-      showDomingoClosed();
-      return;
-    }
-    state.fecha = v;
-    state.hora = null;
-    applyDateDisplay(v, val, btn);
-    loadTimeSlots();
-  });
-}
-
-function applyDateDisplay(dateStr, valEl, btnEl) {
-  const [y, m, d] = dateStr.split('-').map(Number);
-  const date = new Date(y, m - 1, d);
-  const fmt = date.toLocaleDateString('es-CO', { weekday:'long', day:'numeric', month:'long' });
-  valEl.textContent = fmt.charAt(0).toUpperCase() + fmt.slice(1);
-  btnEl.classList.add('has-date');
-}
-
-function showDomingoClosed() {
-  const val = document.getElementById('dateTapValue');
-  val.textContent = '⛔ Los domingos estamos cerrados';
-  setTimeout(() => {
-    if (state.fecha) applyDateDisplay(state.fecha, val, document.getElementById('dateTapBtn'));
-    else val.textContent = 'Toca para elegir';
-  }, 2000);
+  // Scroll hasta la fecha ya seleccionada (si existe)
+  if (state.fecha) {
+    setTimeout(() => {
+      const sel = carousel.querySelector('.date-card.selected');
+      if (sel) sel.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      loadTimeSlots();
+    }, 50);
+  }
 }
 
 // Convierte "8:00 AM" / "2:30 PM" a minutos desde medianoche
